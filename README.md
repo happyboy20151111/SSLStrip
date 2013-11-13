@@ -1,0 +1,4 @@
+SSLStrip
+========
+
+Automatic SSL Strip
