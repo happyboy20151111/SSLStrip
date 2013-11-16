@@ -7,10 +7,10 @@ from Ui_SSLStrip import Ui_SSLStrip
 from interfaceDetector import InterfaceDetector as ID
 from hostsDetector import HostsDetector as HD
 from cargador import Cargador
-from pexpect import run
+from os import geteuid
 import sys
 
-class Root(QtGui.QWidget):
+class UStrip(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
         
@@ -19,38 +19,12 @@ class Root(QtGui.QWidget):
         
         self.centrar()
         
-        #self.compruebaDependencias()
-        
-        self.obtienePasswd()
-        
         self.connect(self.ventana.botonActualizar, QtCore.SIGNAL("clicked()"),
                      self.actualizaDatos)
         self.connect(self.ventana.botonIniciar, QtCore.SIGNAL("clicked()"),
                      self.iniciarSSLStrip)
         self.connect(self.ventana.botonParar, QtCore.SIGNAL("clicked()"),
                      self.pararSSLStrip)
-        
-    def obtienePasswd(self):
-        zenity = '''zenity --password --title="Autenticación"'''
-        self.passwd = run(zenity).replace('\n', '')
-        
-        if self.passwd == "":
-            self.obtienePasswd()
-        else:
-            self.testPasswd()
-    
-    def testPasswd(self):
-        try:
-            cmd = "sudo echo 'Prueba'"
-            event = {"(?i)password":self.passwd + "\n"}        
-            stdout = run(cmd, events=event)
-            if "Sorry, try again." in stdout:
-                texto = "<p><font color='#ffffff'>Password incorrecta!</font></p>"
-                QtGui.QMessageBox.warning(self, "Advertencia", texto,
-                                          buttons=QtGui.QMessageBox.Ok)
-                self.obtienePasswd()
-        except Exception as e:
-            sys.exit(e)
     
     def inicioCarga(self):
         self.cargador = Cargador()
@@ -64,6 +38,7 @@ class Root(QtGui.QWidget):
         self.setEnabled(False)
         
         self.inicioCarga()
+
         # Actualizamos interfaces
         self.threadActualizaInterfaces = QtCore.QThread()
                         
@@ -79,7 +54,7 @@ class Root(QtGui.QWidget):
         # Actualizamos hosts
         self.threadActualizaHosts = QtCore.QThread()
         
-        self.hosts = HD(self.passwd)                     
+        self.hosts = HD()                     
         self.hosts.moveToThread(self.threadActualizaHosts)
         self.hosts.fin.connect(self.threadActualizaHosts.quit)
         self.hosts.hosts.connect(self.actualizaHosts)
@@ -96,11 +71,14 @@ class Root(QtGui.QWidget):
     def actualizaInterfaces(self, interfaces):        
         for interfaz in interfaces:
             self.ventana.boxInterface.addItem(interfaz)
+            self.ventana.boxInterface.setStyleSheet("color: rgb(0, 0, 0);")
     
     def actualizaHosts(self, hosts):
         for host in hosts:
             self.ventana.boxRHost.addItem(host)
             self.ventana.boxGateway.addItem(host)
+        self.ventana.boxRHost.setStyleSheet("color: rgb(0, 0, 0);")
+        self.ventana.boxGateway.setStyleSheet("color: rgb(0, 0, 0);")
         self.finCarga()
         self.setEnabled(True)
     
@@ -122,8 +100,7 @@ class Root(QtGui.QWidget):
             
             self.threadSSLStrip = QtCore.QThread()
             
-            self.sslstrip = SSLStrip(interfaz, rhost, gateway, self.passwd,
-                                     matarSesiones)
+            self.sslstrip = SSLStrip(interfaz, rhost, gateway, matarSesiones)
             self.sslstrip.moveToThread(self.threadSSLStrip)
             self.sslstrip.fin.connect(self.threadSSLStrip.quit)
             self.sslstrip.texto.connect(self.imprimeProceso)
@@ -146,7 +123,10 @@ class Root(QtGui.QWidget):
         self.sslstrip.parar()
     
     def imprimeProceso(self, texto):
-        self.ventana.visor.append(QtGui.QApplication.translate("SSLStrip", texto, None, QtGui.QApplication.UnicodeUTF8))
+        self.ventana.visor.append(QtGui.QApplication.translate("SSLStrip",
+            texto,
+            None,
+            QtGui.QApplication.UnicodeUTF8))
     
     def centrar(self):
         qr = self.frameGeometry()
@@ -175,12 +155,16 @@ class Root(QtGui.QWidget):
             event.ignore()
 
 def main():
+    euid = geteuid()
+
+    if euid != 0:
+        raise EnvironmentError, "[-] Debes ser root!"
+        exit()
+
     app = QtGui.QApplication(sys.argv)
-    root = Root()
-    root.show()
+    uStrip = UStrip()
+    uStrip.show()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
-        
-        
