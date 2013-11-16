@@ -8,17 +8,14 @@ class HostsDetector(QObject):
     fin = pyqtSignal()
     hosts = pyqtSignal(list, name='hosts')
     
-    def __init__(self,passwd):
+    def __init__(self):
         QObject.__init__(self)
-        self.passwd = passwd
     
     def setup(self):
         rangoIP = self.detectaRangoIP()
-        cmd = "sudo nmap -sP " + rangoIP + "/24"
-        
-        event = {"(?i)password":self.passwd + "\n"}
+        cmd = "nmap -sP " + rangoIP + "/24"
          
-        stdout = run(cmd, events=event)
+        stdout = run(cmd)
         
         self.detectaHosts(stdout)
         self.hosts.emit(self.listaHosts)
