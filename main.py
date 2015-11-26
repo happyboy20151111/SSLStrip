@@ -9,7 +9,10 @@ from hostsDetector import HostsDetector as HD
 from cargador import Cargador
 from os import geteuid
 import sys
+#.................................................................................
+#hteiieisoajdfosajodfjosajdofsjaojdfasjsdfsad
 
+#sdfasdfsadfasdfffffffffffffffffffffffffffffffffffffffffffZZZ
 class UStrip(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
